@@ -3,11 +3,7 @@
 ## Build
 
 ```
-GO111MODULE="on" go build
-
-# or to bake in a plugin version:
-
-GO111MODULE="on" go build -ldflags="-X main.version=v1.0.0"
+make
 ```
 
 ## Setup

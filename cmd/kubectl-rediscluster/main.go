@@ -3,16 +3,18 @@ package main
 import (
 	"os"
 
-	"github.com/bjosv/kubectl-rediscluster/cmd"
+	"github.com/bjosv/kubectl-rediscluster/pkg/cmd"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-// Version of this plugin
+// Versions set at link time
 var version = "undefined"
+var git = "undefined"
+var goversion = "undefined"
 
 func main() {
-	cmd.SetVersion(version)
+	cmd.SetVersion(version, git, goversion)
 
 	flags := pflag.NewFlagSet("kubectl-rediscluster", pflag.ExitOnError)
 	pflag.CommandLine = flags
