@@ -1,10 +1,16 @@
+BINARY := kubectl-rediscluster
+VERSION := v0.0.1
+GIT := $(shell git rev-parse HEAD || echo "")
+GOVERSION := $(shell go version || echo "")
 
-version := v0.0.1
-git := $(shell git rev-parse HEAD || echo "")
-goversion := $(shell go version || echo "")
 
-all:
-	GO111MODULE="on" go build \
-	-o kubectl-rediscluster \
-	-ldflags='-X main.version=$(version) -X main.git=$(git) -X "main.goversion=$(goversion)"' \
-	cmd/kubectl-rediscluster/main.go \
+all: build test
+
+build:
+	GO111MODULE="on" CGO_ENABLED=0 \
+	go build -o $(BINARY) \
+	-ldflags='-X main.version=$(VERSION) -X main.git=$(GIT) -X "main.goversion=$(GOVERSION)"' \
+	cmd/$(BINARY).go \
+
+test:
+	go test -v -short -race -timeout 30s ./...
