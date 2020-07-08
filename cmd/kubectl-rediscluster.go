@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/bjosv/kubectl-rediscluster/pkg/cmd"
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -20,10 +22,18 @@ func main() {
 	flags := pflag.NewFlagSet("kubectl-rediscluster", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
-	root := cmd.NewRedisclusterCmd(
-		genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
+	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
+
+	root := &cobra.Command{
+		Use:   "kubectl-rediscluster",
+		Short: "A kubectl plugin for inspecting your Redis Cluster",
+	}
+
+	root.AddCommand(cmd.NewVersionCmd(streams.Out))
+	root.AddCommand(cmd.NewSlotsCmd(streams))
 
 	if err := root.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }

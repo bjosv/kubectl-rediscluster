@@ -21,7 +21,7 @@ type versionCmd struct {
 	out io.Writer
 }
 
-func newVersionCmd(out io.Writer) *cobra.Command {
+func NewVersionCmd(out io.Writer) *cobra.Command {
 	version := &versionCmd{out}
 
 	cmd := &cobra.Command{

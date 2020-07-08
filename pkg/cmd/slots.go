@@ -34,7 +34,7 @@ type ClusterSlots struct {
 	Slots   []redis.ClusterSlot
 }
 
-func newSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
+func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	c := &slotsCmd{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		streams:     &streams,
