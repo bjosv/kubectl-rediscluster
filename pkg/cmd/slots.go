@@ -26,6 +26,7 @@ type slotsCmd struct {
 
 	k8sInfo    *k8s.ClusterInfo
 	redisSlots []redis.ClusterSlot
+	verbose    bool
 }
 
 // Type used when transfering result from portforwarder
@@ -62,6 +63,7 @@ func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	// Add kubectl config flags to this command
 	c.configFlags.AddFlags(cmd.Flags())
 
+	cmd.Flags().BoolVarP(&c.verbose, "verbose", "v", false, "Show verbose logs")
 	return cmd
 }
 
@@ -100,13 +102,16 @@ func (c *slotsCmd) Run() error {
 		return err
 	}
 
-	//Verbose
-	//pfwd := portforwarder.New(restConfig, c.streams.Out, c.streams.ErrOut)
-	pfwd := portforwarder.New(restConfig, nil, nil)
+	var pfwd *portforwarder.PortForwarder
+	if c.verbose {
+		pfwd = portforwarder.New(restConfig, c.streams.Out, c.streams.ErrOut)
+	} else {
+		pfwd = portforwarder.New(restConfig, nil, nil)
 
-	// Silence K8s errors, like connection refuse
-	logKubeError := func(err error) {}
-	runtime.ErrorHandlers = []func(error){logKubeError}
+		// Silence K8s errors, like connection refuse
+		logKubeError := func(err error) {}
+		runtime.ErrorHandlers = []func(error){logKubeError}
+	}
 
 	// Get CLUSTER SLOTS from all Redis pods
 	ch := make(chan ClusterSlots)
