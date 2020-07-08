@@ -37,6 +37,8 @@ type QueryRedisResult struct {
 	Slots   []redis.ClusterSlot
 }
 
+const RedisPort = 6379
+
 func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	c := &slotsCmd{
 		configFlags: genericclioptions.NewConfigFlags(true),
@@ -79,16 +81,14 @@ func (c *slotsCmd) Complete(cmd *cobra.Command, args []string) error {
 
 // Validate ensures that all required arguments and flag values are provided
 func (c *slotsCmd) Validate() error {
-	if len(c.args) != 1 {
-		return fmt.Errorf("a single service name is required, got %d", len(c.args))
+	if len(c.args) > 1 {
+		return fmt.Errorf("maximum 1 service name can be given, got %d", len(c.args))
 	}
 
 	return nil
 }
 
 func (c *slotsCmd) Run() error {
-
-	serviceName := c.args[0]
 
 	namespace, err := currentNamespace(c.configFlags)
 	if err != nil {
@@ -98,6 +98,17 @@ func (c *slotsCmd) Run() error {
 	restConfig, err := c.configFlags.ToRESTConfig()
 	if err != nil {
 		return err
+	}
+
+	serviceName := ""
+	if len(c.args) > 0 {
+		serviceName = c.args[0]
+	} else {
+		serviceName, err = guessServiceName(restConfig, namespace)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(c.streams.Out, "Guessing service name as: %s\n", serviceName)
 	}
 
 	err = getK8sInfo(restConfig, serviceName, namespace, c.k8sInfo)
@@ -130,7 +141,7 @@ func (c *slotsCmd) Run() error {
 				Info:    clusterInfo,
 				Slots:   clusterSlots,
 			}
-		}(pod.Name, 6379, ch)
+		}(pod.Name, RedisPort, ch)
 	}
 
 	// Collect result from CLUSTER SLOTS
@@ -156,6 +167,26 @@ func (c *slotsCmd) Run() error {
 	c.outputResult()
 
 	return nil
+}
+
+func guessServiceName(restConfig *rest.Config, namespace string) (string, error) {
+	clientset := kubernetes.NewForConfigOrDie(restConfig)
+
+	options := metav1.ListOptions{}
+	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), options)
+	if err != nil {
+		return "", fmt.Errorf("Failed to list services in namespace/%s: %v\n", namespace, err)
+	}
+
+	for _, item := range services.Items {
+		for _, port := range item.Spec.Ports {
+			if port.Port == RedisPort {
+				// Found a service that uses the Redis port
+				return item.ObjectMeta.Name, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("Could not guess which service name is used for Redis Cluster in namespace/%s\nPlease provide a service name\n", namespace)
 }
 
 func getK8sInfo(restConfig *rest.Config, serviceName string, namespace string, k8sInfo *k8s.ClusterInfo) error {
