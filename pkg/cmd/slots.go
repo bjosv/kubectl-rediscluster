@@ -147,10 +147,7 @@ func (c *slotsCmd) Run() error {
 	}
 
 	//	Display result
-	err = c.outputResult()
-	if err != nil {
-		return err
-	}
+	c.outputResult()
 
 	return nil
 }
@@ -193,27 +190,26 @@ func currentNamespace(configFlags *genericclioptions.ConfigFlags) (string, error
 	return namespace, err
 }
 
-func (c *slotsCmd) outputResult() error {
+func (c *slotsCmd) outputResult() {
 	if len(c.redisSlots) == 0 {
 		fmt.Fprintln(c.streams.ErrOut, "!! Unable to get any CLUSTER SLOTS data to show..")
-		return nil
+		return
 	}
 
-	w := tabwriter.NewWriter(c.streams.Out, 0, 8, 1, '\t', tabwriter.AlignRight)
+	w := tabwriter.NewWriter(c.streams.Out, 6, 4, 2, ' ', 0)
+	defer w.Flush()
+
 	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tNODE\tINFO")
 	for _, slot := range c.redisSlots {
 		for i, node := range slot.Nodes {
-			addr := node.Addr
-			podInfo := c.k8sInfo.GetPodInfo(addr)
+			podInfo := c.k8sInfo.GetPodInfo(node.Addr)
 			if i == 0 {
-				fmt.Fprintln(w, fmt.Sprintf("%d\t%d\t%s\t%s\t%s\t%s\t%s",
-					slot.Start, slot.End, addr, "", podInfo.Name, podInfo.Node, podInfo.Info))
+				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
+					slot.Start, slot.End, node.Addr, "", podInfo.Name, podInfo.Node, podInfo.Info)
 			} else {
-				fmt.Fprintln(w, fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s",
-					"", "", "", addr, podInfo.Name, podInfo.Node, podInfo.Info))
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					"", "", "", node.Addr, podInfo.Name, podInfo.Node, podInfo.Info)
 			}
 		}
 	}
-	w.Flush()
-	return nil
 }
