@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -29,9 +28,6 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 		Use:   "version",
 		Short: "plugin version",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) != 0 {
-				return errors.New("no arguments accepted for this command")
-			}
 			return version.run()
 		},
 	}

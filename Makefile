@@ -14,3 +14,6 @@ build:
 
 test:
 	go test -v -short -race -timeout 30s ./...
+
+clean:
+	go clean -r

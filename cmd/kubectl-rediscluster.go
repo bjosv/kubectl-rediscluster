@@ -16,17 +16,14 @@ var goversion = "undefined"
 func main() {
 	cmd.SetVersion(version, git, goversion)
 
+	// Set new flagset name
 	flags := pflag.NewFlagSet("kubectl-rediscluster", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
-	redisclusterCmd := cmd.NewRedisclusterCmd(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
-	flags.AddFlagSet(redisclusterCmd.PersistentFlags())
+	root := cmd.NewRedisclusterCmd(
+		genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})
 
-	// Add flags for kubectl configs:
-	kubeConfigFlags := genericclioptions.NewConfigFlags(false)
-	kubeConfigFlags.AddFlags(flags)
-
-	if err := redisclusterCmd.Execute(); err != nil {
+	if err := root.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
