@@ -177,6 +177,10 @@ func getK8sInfo(restConfig *rest.Config, serviceName string, namespace string, k
 
 	// Get pods that matches the Service label selector
 	labelMap := service.Spec.Selector
+	if len(labelMap) == 0 {
+		return fmt.Errorf("The service %s/%s has an empty pod selector, this seems wrong!\n",
+			namespace, serviceName)
+	}
 	options := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labelMap).String(),
 	}

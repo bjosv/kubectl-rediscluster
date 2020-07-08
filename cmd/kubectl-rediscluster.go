@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/bjosv/kubectl-rediscluster/pkg/cmd"
@@ -33,7 +32,6 @@ func main() {
 	root.AddCommand(cmd.NewSlotsCmd(streams))
 
 	if err := root.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }

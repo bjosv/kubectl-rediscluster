@@ -40,9 +40,11 @@ func (c *ClusterInfo) AddPodEndpoints(endpoints *v1.Endpoints) {
 	for _, eps := range endpoints.Subsets {
 		for _, epPort := range eps.Ports {
 			_ = epPort.Port
-
+			// TODO: handle ports
 			for _, epAddress := range eps.Addresses {
-				if epAddress.TargetRef.Kind == "Pod" {
+
+				if epAddress.TargetRef != nil &&
+					epAddress.TargetRef.Kind == "Pod" {
 					ip := epAddress.IP
 					p := PodInfo{
 						Name: epAddress.TargetRef.Name,
