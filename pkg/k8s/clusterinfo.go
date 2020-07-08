@@ -11,7 +11,7 @@ import (
 type PodInfo struct {
 	Name      string
 	IP        string
-	Node      string
+	Host      string
 	Restarts  int
 	StartTime string
 	Info      string
@@ -32,6 +32,7 @@ func (c *ClusterInfo) GetPodInfo(podAddress string) PodInfo {
 	if len(parts) > 1 {
 		return c.Pods[parts[0]]
 	}
+	//TODO: handle not found!
 	return c.Pods[podAddress]
 }
 
@@ -49,7 +50,7 @@ func (c *ClusterInfo) AddPodEndpoints(endpoints *v1.Endpoints) {
 					p := PodInfo{
 						Name: epAddress.TargetRef.Name,
 						IP:   ip,
-						Node: *epAddress.NodeName,
+						Host: *epAddress.NodeName,
 					}
 					c.Pods[ip] = p
 					//fmt.Printf("> Pod added: %s\n", p.Name)
@@ -79,7 +80,7 @@ func (c *ClusterInfo) UpdatePods(podList *v1.PodList) {
 			p := PodInfo{
 				Name: pod.ObjectMeta.Name,
 				IP:   ip,
-				Node: pod.Spec.NodeName,
+				Host: pod.Spec.NodeName,
 				Info: "Endpoint data missing",
 			}
 			c.Pods[ip] = p

@@ -241,28 +241,46 @@ func (c *slotsCmd) outputResult() {
 	defer w.Flush()
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tNODE\tREMARKS")
+	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tHOST\tREMARKS")
 	for _, slots := range c.redisSlots {
-		remarks_slots := analyzeSlotsInfo(slots)
+		remarks_slots := analyzeSlotsInfo(slots, c.k8sInfo)
 
 		for i, node := range slots.Nodes {
 			podInfo := c.k8sInfo.GetPodInfo(node.Addr)
 			remarks := podInfo.Info + remarks_slots
 			if i == 0 {
 				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
-					slots.Start, slots.End, node.Addr, "", podInfo.Name, podInfo.Node, remarks)
+					slots.Start, slots.End, node.Addr, "", podInfo.Name, podInfo.Host, remarks)
 			} else {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					".", ".", "", node.Addr, podInfo.Name, podInfo.Node, remarks)
+					".", ".", "", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			}
 		}
 	}
 }
 
-func analyzeSlotsInfo(slots redis.ClusterSlot) string {
+func analyzeSlotsInfo(slots redis.ClusterSlot, info *k8s.ClusterInfo) string {
 	result := ""
+	// Check redundancy
 	if len(slots.Nodes) == 1 {
 		result += "*Replica missing*"
+	}
+	// Check distribution on K8s workers
+	if len(slots.Nodes) > 1 {
+		host := ""
+		for i, node := range slots.Nodes {
+			h := info.GetPodInfo(node.Addr).Host
+			if i == 0 {
+				host = h
+			} else if h != host {
+				host = ""
+				break // Found difference, skip rest
+			}
+		}
+		if host != "" {
+			result += "*Same host*"
+		}
+
 	}
 	return result
 }
