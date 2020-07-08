@@ -26,12 +26,14 @@ type slotsCmd struct {
 
 	k8sInfo    *k8s.ClusterInfo
 	redisSlots []redis.ClusterSlot
+	redisInfo  map[string]redisutils.ClusterInfo
 	verbose    bool
 }
 
 // Type used when transfering result from portforwarder
-type ClusterSlots struct {
+type QueryRedisResult struct {
 	PodName string
+	Info    redisutils.ClusterInfo
 	Slots   []redis.ClusterSlot
 }
 
@@ -40,6 +42,7 @@ func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		configFlags: genericclioptions.NewConfigFlags(true),
 		streams:     &streams,
 		k8sInfo:     k8s.NewClusterInfo(),
+		redisInfo:   make(map[string]redisutils.ClusterInfo),
 	}
 
 	cmd := &cobra.Command{
@@ -114,16 +117,17 @@ func (c *slotsCmd) Run() error {
 	}
 
 	// Get CLUSTER SLOTS from all Redis pods
-	ch := make(chan ClusterSlots)
+	ch := make(chan QueryRedisResult)
 	for _, pod := range c.k8sInfo.Pods {
-		go func(podName string, podPort int, ch chan ClusterSlots) {
-			clusterSlots, err := redisutils.GetClusterSlots(pfwd, namespace, podName, podPort)
+		go func(podName string, podPort int, ch chan QueryRedisResult) {
+			clusterSlots, clusterInfo, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
 			if err != nil {
 				fmt.Printf("Failed to get Redis Cluster slot information for pod=%s: %v\n",
 					podName, err)
 			}
-			ch <- ClusterSlots{
+			ch <- QueryRedisResult{
 				PodName: podName,
+				Info:    clusterInfo,
 				Slots:   clusterSlots,
 			}
 		}(pod.Name, 6379, ch)
@@ -132,16 +136,18 @@ func (c *slotsCmd) Run() error {
 	// Collect result from CLUSTER SLOTS
 	for range c.k8sInfo.Pods {
 		select {
-		case clusterSlots := <-ch:
-			if clusterSlots.Slots != nil {
+		case queryResult := <-ch:
+			if queryResult.Slots != nil {
 				if c.redisSlots == nil {
-					c.redisSlots = clusterSlots.Slots
+					c.redisSlots = queryResult.Slots
 				} else {
-					// Merge slots
-
+					// TODO: Merge slots
 				}
 			} else {
-				fmt.Printf("Slots data missing from %s\n", clusterSlots.PodName)
+				fmt.Printf("Slots data missing from %s\n", queryResult.PodName)
+			}
+			if queryResult.Info != nil {
+				c.redisInfo[queryResult.PodName] = queryResult.Info
 			}
 		}
 	}
@@ -199,17 +205,29 @@ func (c *slotsCmd) outputResult() {
 	w := tabwriter.NewWriter(c.streams.Out, 6, 4, 2, ' ', 0)
 	defer w.Flush()
 
-	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tNODE\tINFO")
-	for _, slot := range c.redisSlots {
-		for i, node := range slot.Nodes {
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tNODE\tREMARKS")
+	for _, slots := range c.redisSlots {
+		remarks_slots := analyzeSlotsInfo(slots)
+
+		for i, node := range slots.Nodes {
 			podInfo := c.k8sInfo.GetPodInfo(node.Addr)
+			remarks := podInfo.Info + remarks_slots
 			if i == 0 {
 				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
-					slot.Start, slot.End, node.Addr, "", podInfo.Name, podInfo.Node, podInfo.Info)
+					slots.Start, slots.End, node.Addr, "", podInfo.Name, podInfo.Node, remarks)
 			} else {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					"", "", "", node.Addr, podInfo.Name, podInfo.Node, podInfo.Info)
+					".", ".", "", node.Addr, podInfo.Name, podInfo.Node, remarks)
 			}
 		}
 	}
+}
+
+func analyzeSlotsInfo(slots redis.ClusterSlot) string {
+	result := ""
+	if len(slots.Nodes) == 1 {
+		result += "*Replica missing*"
+	}
+	return result
 }

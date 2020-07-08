@@ -50,7 +50,7 @@ func (c *ClusterInfo) AddPodEndpoints(endpoints *v1.Endpoints) {
 						Node: *epAddress.NodeName,
 					}
 					c.Pods[ip] = p
-					fmt.Printf("> Pod added: %s\n", p.Name)
+					//fmt.Printf("> Pod added: %s\n", p.Name)
 				}
 			}
 		}
@@ -71,9 +71,9 @@ func (c *ClusterInfo) UpdatePods(podList *v1.PodList) {
 				p.Restarts = int(container.RestartCount)
 			}
 			c.Pods[ip] = p
-			fmt.Printf("> Pod updated: %s\n", p.Name)
+			//fmt.Printf("> Pod updated: %s\n", p.Name)
 		} else {
-			fmt.Fprintf(os.Stderr, "Found POD=%s but the Endpoint resource is missing\n", ip)
+			fmt.Fprintf(os.Stderr, "Selector matches %s (%s), but its not included in the Endpoint resource\n", pod.ObjectMeta.Name, ip)
 			p := PodInfo{
 				Name: pod.ObjectMeta.Name,
 				IP:   ip,
@@ -81,7 +81,7 @@ func (c *ClusterInfo) UpdatePods(podList *v1.PodList) {
 				Info: "Endpoint data missing",
 			}
 			c.Pods[ip] = p
-			fmt.Printf("> Pod added (missing): %s\n", p.Name)
+			//fmt.Printf("> Pod added (missing): %s\n", p.Name)
 		}
 	}
 	//fmt.Println("Update done")
