@@ -11,11 +11,10 @@ import (
 
 // Versions set at link time
 var version = "undefined"
-var git = "undefined"
-var goversion = "undefined"
+var commit = "undefined"
 
 func main() {
-	cmd.SetVersion(version, git, goversion)
+	cmd.SetVersion(version, commit)
 
 	// Set new flagset name
 	flags := pflag.NewFlagSet("kubectl-rediscluster", pflag.ExitOnError)

@@ -8,13 +8,11 @@ import (
 )
 
 var version string
-var git string
-var goversion string
+var commit string
 
-func SetVersion(v string, g string, gv string) {
+func SetVersion(v string, c string) {
 	version = v
-	git = g
-	goversion = gv
+	commit = c
 }
 
 type versionCmd struct {
@@ -35,8 +33,8 @@ func NewVersionCmd(out io.Writer) *cobra.Command {
 }
 
 func (v *versionCmd) run() error {
-	_, err := fmt.Fprintf(v.out, "Plugin Version:\t%s\nGit:\t\t%s\nGo:\t\t%s\n",
-		version, git, goversion)
+	_, err := fmt.Fprintf(v.out, "Plugin Version:\t%s\nCommit:\t\t%s\n",
+		version, commit)
 	if err != nil {
 		return err
 	}
