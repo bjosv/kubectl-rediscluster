@@ -25,8 +25,8 @@ type slotsCmd struct {
 	args        []string
 
 	k8sInfo    *k8s.ClusterInfo
-	redisSlots []redis.ClusterSlot
 	redisInfo  map[string]redisutils.ClusterInfo
+	redisSlots map[string][]redis.ClusterSlot //map of lists
 	verbose    bool
 }
 
@@ -37,8 +37,6 @@ type QueryRedisResult struct {
 	Slots   []redis.ClusterSlot
 }
 
-const RedisPort = 6379
-
 // NewSlotsCmd initialize and creates a Cobra command
 func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	c := &slotsCmd{
@@ -46,6 +44,7 @@ func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		streams:     &streams,
 		k8sInfo:     k8s.NewClusterInfo(),
 		redisInfo:   make(map[string]redisutils.ClusterInfo),
+		redisSlots:  make(map[string][]redis.ClusterSlot),
 	}
 
 	cmd := &cobra.Command{
@@ -92,7 +91,7 @@ func (c *slotsCmd) Validate() error {
 // Run the command
 func (c *slotsCmd) Run() error {
 
-	namespace, err := currentNamespace(c.configFlags)
+	namespace, err := k8s.CurrentNamespace(c.configFlags)
 	if err != nil {
 		return err
 	}
@@ -106,13 +105,14 @@ func (c *slotsCmd) Run() error {
 	if len(c.args) > 0 {
 		serviceName = c.args[0]
 	} else {
-		serviceName, err = guessServiceName(restConfig, namespace)
+		serviceName, err = k8s.FindServiceUsingPort(restConfig, namespace, redisutils.RedisPort)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s\nPlease provide a service name\n", err)
 		}
 		fmt.Fprintf(c.streams.Out, "Using service name: %s\n", serviceName)
 	}
 
+	// Get pod info
 	err = getK8sInfo(restConfig, serviceName, namespace, c.k8sInfo)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (c *slotsCmd) Run() error {
 		runtime.ErrorHandlers = []func(error){logKubeError}
 	}
 
-	// Get CLUSTER SLOTS from all Redis pods
+	// Query all pods/redis instances
 	ch := make(chan QueryRedisResult)
 	for _, pod := range c.k8sInfo.Pods {
 		go func(podName string, podPort int, ch chan QueryRedisResult) {
@@ -143,24 +143,19 @@ func (c *slotsCmd) Run() error {
 				Info:    clusterInfo,
 				Slots:   clusterSlots,
 			}
-		}(pod.Name, RedisPort, ch)
+		}(pod.Name, redisutils.RedisPort, ch)
 	}
 
-	// Collect result from CLUSTER SLOTS
+	// Collect result from all pods/redis instances
 	for range c.k8sInfo.Pods {
 		select {
 		case queryResult := <-ch:
-			if queryResult.Slots != nil {
-				if c.redisSlots == nil {
-					c.redisSlots = queryResult.Slots
-				} else {
-					// TODO: Merge slots
-				}
-			} else {
-				fmt.Printf("Slots data missing from %s\n", queryResult.PodName)
-			}
 			if queryResult.Info != nil {
 				c.redisInfo[queryResult.PodName] = queryResult.Info
+			}
+
+			if queryResult.Slots != nil {
+				c.redisSlots[queryResult.PodName] = queryResult.Slots
 			}
 		}
 	}
@@ -169,26 +164,6 @@ func (c *slotsCmd) Run() error {
 	c.outputResult()
 
 	return nil
-}
-
-func guessServiceName(restConfig *rest.Config, namespace string) (string, error) {
-	clientset := kubernetes.NewForConfigOrDie(restConfig)
-
-	options := metav1.ListOptions{}
-	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), options)
-	if err != nil {
-		return "", fmt.Errorf("Failed to list services in namespace/%s: %v\n", namespace, err)
-	}
-
-	for _, item := range services.Items {
-		for _, port := range item.Spec.Ports {
-			if port.Port == RedisPort {
-				// Found a service that uses the Redis port
-				return item.ObjectMeta.Name, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("Could not guess which service name is used for Redis Cluster in namespace/%s\nPlease provide a service name\n", namespace)
 }
 
 func getK8sInfo(restConfig *rest.Config, serviceName string, namespace string, k8sInfo *k8s.ClusterInfo) error {
@@ -227,40 +202,6 @@ func getK8sInfo(restConfig *rest.Config, serviceName string, namespace string, k
 	return nil
 }
 
-func currentNamespace(configFlags *genericclioptions.ConfigFlags) (string, error) {
-	kubeConfig := configFlags.ToRawKubeConfigLoader()
-	namespace, _, err := kubeConfig.Namespace()
-	return namespace, err
-}
-
-func (c *slotsCmd) outputResult() {
-	if len(c.redisSlots) == 0 {
-		fmt.Fprintln(c.streams.ErrOut, "!! Unable to get any CLUSTER SLOTS data to show..")
-		return
-	}
-
-	w := tabwriter.NewWriter(c.streams.Out, 6, 4, 2, ' ', 0)
-	defer w.Flush()
-
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tHOST\tREMARKS")
-	for _, slots := range c.redisSlots {
-		remarks_slots := analyzeSlotsInfo(slots, c.k8sInfo)
-
-		for i, node := range slots.Nodes {
-			podInfo := c.k8sInfo.GetPodInfo(node.Addr)
-			remarks := podInfo.Info + remarks_slots
-			if i == 0 {
-				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
-					slots.Start, slots.End, node.Addr, "", podInfo.Name, podInfo.Host, remarks)
-			} else {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					".", ".", "", node.Addr, podInfo.Name, podInfo.Host, remarks)
-			}
-		}
-	}
-}
-
 func analyzeSlotsInfo(slots redis.ClusterSlot, info *k8s.ClusterInfo) string {
 	result := ""
 	// Check redundancy
@@ -285,4 +226,37 @@ func analyzeSlotsInfo(slots redis.ClusterSlot, info *k8s.ClusterInfo) string {
 
 	}
 	return result
+}
+
+func (c *slotsCmd) outputResult() {
+	if len(c.redisSlots) == 0 {
+		fmt.Fprintln(c.streams.ErrOut, "!! Unable to get any CLUSTER SLOTS data to show..")
+		return
+	}
+
+	w := tabwriter.NewWriter(c.streams.Out, 6, 4, 2, ' ', 0)
+	defer w.Flush()
+
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tHOST\tREMARKS")
+
+	podName := ""
+	for k, _ := range c.redisSlots {
+		podName = k
+	}
+	for _, slots := range c.redisSlots[podName] {
+		remarks_slots := analyzeSlotsInfo(slots, c.k8sInfo)
+
+		for i, node := range slots.Nodes {
+			podInfo := c.k8sInfo.GetPodInfo(node.Addr)
+			remarks := podInfo.Info + remarks_slots
+			if i == 0 {
+				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
+					slots.Start, slots.End, node.Addr, "", podInfo.Name, podInfo.Host, remarks)
+			} else {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+					".", ".", "", node.Addr, podInfo.Name, podInfo.Host, remarks)
+			}
+		}
+	}
 }

@@ -11,6 +11,8 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+const RedisPort = 6379
+
 // Sorter type
 type BySlot []redis.ClusterSlot
 
