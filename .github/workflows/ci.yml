@@ -19,9 +19,6 @@ jobs:
         go-version: ^1.13
       id: go
 
-    - name: Version
-      run: go version
-
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
@@ -34,3 +31,9 @@ jobs:
 
     - name: Test
       run: make test
+
+    - name: Testrun GoReleaser
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        version: latest
+        args: release --snapshot --skip-publish --rm-dist
