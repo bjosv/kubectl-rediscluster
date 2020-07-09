@@ -39,6 +39,7 @@ type QueryRedisResult struct {
 
 const RedisPort = 6379
 
+// NewSlotsCmd initialize and creates a Cobra command
 func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	c := &slotsCmd{
 		configFlags: genericclioptions.NewConfigFlags(true),
@@ -88,6 +89,7 @@ func (c *slotsCmd) Validate() error {
 	return nil
 }
 
+// Run the command
 func (c *slotsCmd) Run() error {
 
 	namespace, err := currentNamespace(c.configFlags)
@@ -108,7 +110,7 @@ func (c *slotsCmd) Run() error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(c.streams.Out, "Guessing service name as: %s\n", serviceName)
+		fmt.Fprintf(c.streams.Out, "Using service name: %s\n", serviceName)
 	}
 
 	err = getK8sInfo(restConfig, serviceName, namespace, c.k8sInfo)
