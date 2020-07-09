@@ -1,6 +1,8 @@
 # kubectl-rediscluster
 
-A kubectl plugin for inspecting your Redis Cluster. The plugin will collect information from the K8s API and by connecting to the Redis instances within the pods.
+A kubectl plugin for inspecting your Redis Clusters deployed in Kubernetes. The plugin will collect information from the K8s API, and by connecting to the Redis instances within the pods.
+
+The plugin expects a Service to be able to find out which Pods that runs Redis in cluster mode.
 
 ## Installation
 
@@ -27,6 +29,8 @@ kubectl rc slots
 
 Get the slot distribution of a Redis Cluster service named `cluster-redis-cluster`
 
+`kubectl rediscluster slots <SERVICE NAME>`
+
 Example:
 
 ```bash
@@ -42,10 +46,22 @@ START  END    MASTER           REPLICA          PODNAME                     HOST
 
 ### Options
 
-If the service name is skipped the plugin will try to guess which service that handles the Redis cluster.
+#### Guess service name
+
+Let the plugin guess which service that provides the Redis cluster by omit the service name.
 
 Example:
 
 ```bash
 > kubectl rediscluster slots
+```
+
+#### Set namespace
+
+All the usual kubeconfig options are available, like using specific namespace. See help (-h)
+
+Example:
+
+```bash
+> kubectl rediscluster slots -n mynamespace
 ```

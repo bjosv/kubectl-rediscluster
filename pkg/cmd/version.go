@@ -33,7 +33,7 @@ func NewVersionCmd(out io.Writer) *cobra.Command {
 }
 
 func (v *versionCmd) run() error {
-	_, err := fmt.Fprintf(v.out, "Plugin Version:\t%s\nCommit:\t\t%s\n",
+	_, err := fmt.Fprintf(v.out, "Version:\t%s\nCommit:\t%s\n",
 		version, commit)
 	if err != nil {
 		return err
