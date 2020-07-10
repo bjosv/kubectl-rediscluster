@@ -190,7 +190,7 @@ func (c *slotsCmd) outputResult() {
 	defer w.Flush()
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "START\tEND\tMASTER\tREPLICA\tPODNAME\tHOST\tREMARKS")
+	fmt.Fprintln(w, "START\tEND\tROLE\tIP\tPODNAME\tHOST\tREMARKS")
 
 	// Get last podName
 	podName := ""
@@ -205,10 +205,10 @@ func (c *slotsCmd) outputResult() {
 			remarks := podInfo.Info + remarks_slots
 			if i == 0 {
 				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
-					slots.Start, slots.End, node.Addr, "", podInfo.Name, podInfo.Host, remarks)
+					slots.Start, slots.End, "Master", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			} else {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					".", ".", "", node.Addr, podInfo.Name, podInfo.Host, remarks)
+					".", ".", "Repl.", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			}
 		}
 	}
