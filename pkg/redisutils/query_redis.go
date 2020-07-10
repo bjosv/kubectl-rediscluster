@@ -13,17 +13,18 @@ import (
 
 const RedisPort = 6379
 
+type ClusterInfo map[string]string
+type ClusterNodes map[string][]string
+type ClusterSlots []redis.ClusterSlot
+
 // Sorter functions: Sort by Start slot
-type BySlot []redis.ClusterSlot
+type BySlot ClusterSlots
 
 func (s BySlot) Len() int           { return len(s) }
 func (s BySlot) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s BySlot) Less(i, j int) bool { return s[i].Start < s[j].Start }
 
-type ClusterInfo map[string]string
-type ClusterNodes map[string][]string
-
-func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName string, podPort int) ([]redis.ClusterSlot, ClusterInfo, ClusterNodes, error) {
+func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName string, podPort int) (ClusterInfo, ClusterNodes, ClusterSlots, error) {
 
 	localPort, err := portforwarder.GetAvailableLocalPort()
 	if err != nil {
@@ -111,5 +112,5 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	close(stopCh)
 	wg.Wait()
 
-	return slots, info, nodes, nil
+	return info, nodes, slots, nil
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/bjosv/kubectl-rediscluster/pkg/k8s"
 	"github.com/bjosv/kubectl-rediscluster/pkg/redisutils"
-	"github.com/go-redis/redis/v8"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -16,9 +15,9 @@ import (
 // Type used when transfering result from portforwarder
 type QueryRedisResult struct {
 	PodName string
-	Slots   []redis.ClusterSlot
 	Info    redisutils.ClusterInfo
 	Nodes   redisutils.ClusterNodes
+	Slots   redisutils.ClusterSlots
 }
 
 func getK8sInfo(restConfig *rest.Config, serviceName string, namespace string, k8sInfo *k8s.ClusterInfo) error {

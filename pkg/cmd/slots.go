@@ -21,7 +21,7 @@ type slotsCmd struct {
 
 	k8sInfo    *k8s.ClusterInfo
 	redisInfo  map[string]redisutils.ClusterInfo
-	redisSlots map[string][]redis.ClusterSlot //map of lists
+	redisSlots map[string]redisutils.ClusterSlots
 	verbose    bool
 }
 
@@ -32,7 +32,7 @@ func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		streams:     &streams,
 		k8sInfo:     k8s.NewClusterInfo(),
 		redisInfo:   make(map[string]redisutils.ClusterInfo),
-		redisSlots:  make(map[string][]redis.ClusterSlot),
+		redisSlots:  make(map[string]redisutils.ClusterSlots),
 	}
 
 	cmd := &cobra.Command{
@@ -95,7 +95,7 @@ func (c *slotsCmd) Run() error {
 	} else {
 		serviceName, err = k8s.FindServiceUsingPort(restConfig, namespace, redisutils.RedisPort)
 		if err != nil {
-			return fmt.Errorf("%s\nPlease provide a service name\n", err)
+			return fmt.Errorf("%s\nPlease provide a service name", err)
 		}
 		fmt.Fprintf(c.streams.Out, "Using service name: %s\n", serviceName)
 	}
@@ -121,7 +121,7 @@ func (c *slotsCmd) Run() error {
 	ch := make(chan QueryRedisResult)
 	for _, pod := range c.k8sInfo.Pods {
 		go func(podName string, podPort int, ch chan QueryRedisResult) {
-			clusterSlots, clusterInfo, _, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
+			clusterInfo, _, clusterSlots, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
 			if err != nil {
 				fmt.Printf("Failed to get Redis Cluster slot information for pod=%s: %v\n",
 					podName, err)
@@ -197,6 +197,7 @@ func (c *slotsCmd) outputResult() {
 	for k := range c.redisSlots {
 		podName = k
 	}
+
 	for _, slots := range c.redisSlots[podName] {
 		remarks_slots := analyzeSlotsInfo(slots, c.k8sInfo)
 
