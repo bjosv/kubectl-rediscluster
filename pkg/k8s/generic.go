@@ -21,7 +21,8 @@ func CurrentNamespace(configFlags *genericclioptions.ConfigFlags) (string, error
 func FindServiceUsingPort(restConfig *rest.Config, namespace string, port int) (string, error) {
 	clientset := kubernetes.NewForConfigOrDie(restConfig)
 
-	options := metav1.ListOptions{}
+	var timeout int64 = 2
+	options := metav1.ListOptions{TimeoutSeconds: &timeout}
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), options)
 	if err != nil {
 		return "", fmt.Errorf("Failed to list services in namespace/%s: %v\n", namespace, err)

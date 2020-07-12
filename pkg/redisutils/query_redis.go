@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/bjosv/kubectl-rediscluster/pkg/portforwarder"
 	"github.com/go-redis/redis/v8"
@@ -49,6 +50,9 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	select {
 	case <-readyCh:
 		break
+	case <-time.After(2 * time.Second):
+		close(stopCh)
+		return nil, nil, nil, fmt.Errorf("Could not setup a portforward to %s/%s:%d\n", namespace, podName, podPort)
 	}
 
 	// Connect to Redis instance in pod (using portforwarding)

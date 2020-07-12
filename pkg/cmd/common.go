@@ -45,8 +45,11 @@ func getK8sInfo(restConfig *rest.Config, serviceName string, namespace string, k
 		return fmt.Errorf("The service %s/%s has an empty pod selector, this seems wrong!\n",
 			namespace, serviceName)
 	}
+
+	var timeout int64 = 2
 	options := metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelMap).String(),
+		LabelSelector:  labels.SelectorFromSet(labelMap).String(),
+		TimeoutSeconds: &timeout,
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), options)
