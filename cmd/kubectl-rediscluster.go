@@ -29,6 +29,7 @@ func main() {
 
 	root.AddCommand(cmd.NewVersionCmd(streams.Out))
 	root.AddCommand(cmd.NewSlotsCmd(streams))
+	root.AddCommand(cmd.NewNodesCmd(streams))
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)

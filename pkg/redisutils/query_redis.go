@@ -75,7 +75,7 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 
 	// Structure the cluster info data
 	info := make(map[string]string)
-	for _, line := range strings.Split(cInfo, "\n") {
+	for _, line := range strings.Split(cInfo, "\r\n") {
 		keyVals := strings.Split(line, ":")
 
 		if len(keyVals) == 2 {
@@ -95,8 +95,10 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	}
 
 	// Structure the cluster info data
+	// map[ip] with list of elements:
+	// id, ip:port@port, flags(self/master..), master-id, ping, pong, config-epoch, linkstate, slot
 	nodes := make(map[string][]string)
-	for _, line := range strings.Split(cNodes, "\n") {
+	for _, line := range strings.Split(cNodes, "\r\n") {
 		keyVals := strings.Split(line, " ")
 
 		if len(keyVals) > 6 {

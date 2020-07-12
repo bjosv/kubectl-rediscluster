@@ -44,6 +44,26 @@ START  END    ROLE    IP               PODNAME                     HOST         
 10924  16383  Master  10.244.3.2:6379  rediscluster-cluster-v7dcl  kind-worker2  *Replica missing*
 ```
 
+### Get nodes information
+
+Get information about the Redis Cluster instances.
+
+`kubectl rediscluster nodes <SERVICE NAME>`
+
+Example:
+
+```bash
+> kubectl rediscluster nodes cluster-redis-cluster
+                                                                         SLOT    CLUSTER
+HOST          PODNAME                     IP          ROLE  KEYS  SLOTS  RANGES  STATE    REMARKS
+kind-worker   rediscluster-cluster-pf24w  10.244.1.3  ?     0     5462   1       ok
+kind-worker   rediscluster-cluster-vkttp  10.244.1.4  ?     0     5462   1       ok
+kind-worker2  rediscluster-cluster-rfvsr  10.244.2.2  ?     0     5460   1       ok
+kind-worker2  rediscluster-cluster-kpxf2  10.244.2.3  ?     0     5460   1       ok
+kind-worker3  rediscluster-cluster-j8kd4  10.244.3.2  ?     0     5462   1       ok
+kind-worker3  rediscluster-cluster-4rxkj  10.244.3.3  ?     0     5462   1       ok
+```
+
 ### Options
 
 #### Omit service name
