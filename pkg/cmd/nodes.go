@@ -190,10 +190,12 @@ func (c *nodesCmd) outputResult() {
 		podName := p.Name
 		podIP := p.IP
 
+		nodes := c.redisNodes[podName]
+		role := nodes.GetFlagsSelf()
+
 		keys := c.redisInfo[podName]["keys"]
 		state := c.redisInfo[podName]["cluster_state"]
 		//addr := fmt.Sprintf("%s:%d", p.IP, redisutils.RedisPort)
-		role := "?"
 		slots, slotranges := slotsCount(podIP, c.redisSlots[podName])
 		remarks := ""
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%d\t%s\t%s\n",

@@ -46,7 +46,7 @@ START  END    ROLE    IP               PODNAME                     HOST         
 
 ### Get nodes information
 
-Get information about the Redis Cluster instances.
+Get information about the Redis Cluster instances. It shows each instance view of the Redis cluster.
 
 `kubectl rediscluster nodes <SERVICE NAME>`
 
@@ -54,14 +54,14 @@ Example:
 
 ```bash
 > kubectl rediscluster nodes cluster-redis-cluster
-                                                                         SLOT    CLUSTER
-HOST          PODNAME                     IP          ROLE  KEYS  SLOTS  RANGES  STATE    REMARKS
-kind-worker   rediscluster-cluster-pf24w  10.244.1.3  ?     0     5462   1       ok
-kind-worker   rediscluster-cluster-vkttp  10.244.1.4  ?     0     5462   1       ok
-kind-worker2  rediscluster-cluster-rfvsr  10.244.2.2  ?     0     5460   1       ok
-kind-worker2  rediscluster-cluster-kpxf2  10.244.2.3  ?     0     5460   1       ok
-kind-worker3  rediscluster-cluster-j8kd4  10.244.3.2  ?     0     5462   1       ok
-kind-worker3  rediscluster-cluster-4rxkj  10.244.3.3  ?     0     5462   1       ok
+                                                                            SLOT    CLUSTER
+HOST          PODNAME                     IP           ROLE    KEYS  SLOTS  RANGES  STATE    REMARKS
+kind-worker   rediscluster-cluster-t8szs  10.244.1.13  slave   3334  5462   10      ok
+kind-worker   rediscluster-cluster-9b225  10.244.1.8   master  3328  5462   15      ok
+kind-worker2  rediscluster-cluster-vxpng  10.244.2.12  master  3338  5460   9       ok
+kind-worker2  rediscluster-cluster-lmlhl  10.244.2.14  slave   3328  5462   15      ok
+kind-worker3  rediscluster-cluster-mbww9  10.244.3.11  slave   3338  5460   9       ok
+kind-worker3  rediscluster-cluster-t4znw  10.244.3.3   master  3334  5462   10      ok
 ```
 
 ### Options

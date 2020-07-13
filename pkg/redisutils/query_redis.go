@@ -15,7 +15,6 @@ import (
 const RedisPort = 6379
 
 type ClusterInfo map[string]string
-type ClusterNodes map[string][]string
 type ClusterSlots []redis.ClusterSlot
 
 // Sorter functions: Sort by Start slot
@@ -98,21 +97,8 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 		return nil, nil, nil, err
 	}
 
-	// Structure the cluster info data
-	// map[ip] with list of elements:
-	// id, ip:port@port, flags(self/master..), master-id, ping, pong, config-epoch, linkstate, slot
-	nodes := make(map[string][]string)
-	for _, line := range strings.Split(cNodes, "\r\n") {
-		keyVals := strings.Split(line, " ")
-
-		if len(keyVals) > 6 {
-			addr := strings.Split(keyVals[1], ":")
-			if len(addr) > 1 {
-				ip := addr[0]
-				nodes[ip] = keyVals
-			}
-		}
-	}
+	// Parse cli data
+	nodes := NewClusterNodes(cNodes)
 
 	// Stop and wait for portforwarder goroutine to exit
 	close(stopCh)
