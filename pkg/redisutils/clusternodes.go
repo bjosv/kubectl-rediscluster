@@ -30,7 +30,8 @@ func NewClusterNodes(cliData string) ClusterNodes {
 func (n *ClusterNodes) GetFlagsSelf() string {
 	for _, status := range *n {
 		if strings.Contains(status[2], "myself") {
-			return strings.Replace(status[2], "myself,", "", -1)
+			flags := strings.Replace(status[2], "myself,", "", -1)
+			return strings.Replace(flags, "slave", "repl.", -1)
 		}
 	}
 	return "unknown"

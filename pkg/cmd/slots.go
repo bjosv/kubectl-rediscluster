@@ -158,7 +158,7 @@ func analyzeSlotsInfo(slots redis.ClusterSlot, info *k8s.ClusterInfo) string {
 	result := ""
 	// Check redundancy
 	if len(slots.Nodes) == 1 {
-		result += "*Replica missing*"
+		result += "*replica missing*"
 	}
 	// Check distribution on K8s workers
 	if len(slots.Nodes) > 1 {
@@ -173,7 +173,7 @@ func analyzeSlotsInfo(slots redis.ClusterSlot, info *k8s.ClusterInfo) string {
 			}
 		}
 		if host != "" {
-			result += "*Same host*"
+			result += "*same host*"
 		}
 
 	}
@@ -206,10 +206,10 @@ func (c *slotsCmd) outputResult() {
 			remarks := podInfo.Info + remarks_slots
 			if i == 0 {
 				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
-					slots.Start, slots.End, "Master", node.Addr, podInfo.Name, podInfo.Host, remarks)
+					slots.Start, slots.End, "master", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			} else {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					".", ".", "Repl.", node.Addr, podInfo.Name, podInfo.Host, remarks)
+					".", ".", "repl.", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			}
 		}
 	}

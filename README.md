@@ -37,11 +37,11 @@ Example:
 > kubectl rediscluster slots cluster-redis-cluster
 
 START  END    ROLE    IP               PODNAME                     HOST          REMARKS
-0      5461   Master  10.244.3.3:6379  rediscluster-cluster-lvkmz  kind-worker2
-.      .      Repl.   10.244.2.2:6379  rediscluster-cluster-dqrzl  kind-worker
-5462   10923  Master  10.244.1.3:6379  rediscluster-cluster-7tpnv  kind-worker3  *Same host*
-.      .      Repl.   10.244.1.4:6379  rediscluster-cluster-kgtrm  kind-worker3  *Same host*
-10924  16383  Master  10.244.3.2:6379  rediscluster-cluster-v7dcl  kind-worker2  *Replica missing*
+0      5461   master  10.244.3.3:6379  rediscluster-cluster-lvkmz  kind-worker2
+.      .      repl.   10.244.2.2:6379  rediscluster-cluster-dqrzl  kind-worker
+5462   10923  master  10.244.1.3:6379  rediscluster-cluster-7tpnv  kind-worker3  *same host*
+.      .      repl.   10.244.1.4:6379  rediscluster-cluster-kgtrm  kind-worker3  *same host*
+10924  16383  master  10.244.3.2:6379  rediscluster-cluster-v7dcl  kind-worker2  *replica missing*
 ```
 
 ### Get nodes information
@@ -56,11 +56,11 @@ Example:
 > kubectl rediscluster nodes cluster-redis-cluster
                                                                             SLOT    CLUSTER
 HOST          PODNAME                     IP           ROLE    KEYS  SLOTS  RANGES  STATE    REMARKS
-kind-worker   rediscluster-cluster-t8szs  10.244.1.13  slave   3334  5462   10      ok
+kind-worker   rediscluster-cluster-t8szs  10.244.1.13  repl.   3334  5462   10      ok
 kind-worker   rediscluster-cluster-9b225  10.244.1.8   master  3328  5462   15      ok
 kind-worker2  rediscluster-cluster-vxpng  10.244.2.12  master  3338  5460   9       ok
-kind-worker2  rediscluster-cluster-lmlhl  10.244.2.14  slave   3328  5462   15      ok
-kind-worker3  rediscluster-cluster-mbww9  10.244.3.11  slave   3338  5460   9       ok
+kind-worker2  rediscluster-cluster-lmlhl  10.244.2.14  repl.   3328  5462   15      ok
+kind-worker3  rediscluster-cluster-mbww9  10.244.3.11  repl.   3338  5460   9       ok
 kind-worker3  rediscluster-cluster-t4znw  10.244.3.3   master  3334  5462   10      ok
 ```
 
