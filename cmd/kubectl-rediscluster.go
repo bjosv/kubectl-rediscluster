@@ -20,13 +20,12 @@ func main() {
 	flags := pflag.NewFlagSet("kubectl-rediscluster", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
-	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
-
 	root := &cobra.Command{
 		Use:   "kubectl-rediscluster",
 		Short: "A kubectl plugin for inspecting your Redis Cluster",
 	}
 
+	streams := genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}
 	root.AddCommand(cmd.NewVersionCmd(streams.Out))
 	root.AddCommand(cmd.NewSlotsCmd(streams))
 	root.AddCommand(cmd.NewNodesCmd(streams))

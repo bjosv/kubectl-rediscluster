@@ -25,7 +25,6 @@ func (s BySlot) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s BySlot) Less(i, j int) bool { return s[i].Start < s[j].Start }
 
 func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName string, podPort int) (ClusterInfo, ClusterNodes, ClusterSlots, error) {
-
 	localPort, err := portforwarder.GetAvailableLocalPort()
 	if err != nil {
 		return nil, nil, nil, err
@@ -38,7 +37,7 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	wg.Add(1)
 
 	go func() {
-		pfwd.ForwardPort(namespace, podName, localPort, podPort, stopCh, readyCh)
+		err = pfwd.ForwardPort(namespace, podName, localPort, podPort, stopCh, readyCh)
 		if err != nil {
 			panic(err)
 		}
@@ -51,7 +50,7 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 		break
 	case <-time.After(2 * time.Second):
 		close(stopCh)
-		return nil, nil, nil, fmt.Errorf("Could not setup a portforward to %s/%s:%d\n", namespace, podName, podPort)
+		return nil, nil, nil, fmt.Errorf("could not setup a portforward to %s/%s:%d", namespace, podName, podPort)
 	}
 
 	// Connect to Redis instance in pod (using portforwarding)

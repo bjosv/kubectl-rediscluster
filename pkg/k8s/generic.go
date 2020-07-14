@@ -25,7 +25,7 @@ func FindServiceUsingPort(restConfig *rest.Config, namespace string, port int) (
 	options := metav1.ListOptions{TimeoutSeconds: &timeout}
 	services, err := clientset.CoreV1().Services(namespace).List(context.TODO(), options)
 	if err != nil {
-		return "", fmt.Errorf("Failed to list services in namespace/%s: %v\n", namespace, err)
+		return "", fmt.Errorf("failed to list services in namespace/%s: %v", namespace, err)
 	}
 
 	for _, item := range services.Items {
@@ -35,5 +35,5 @@ func FindServiceUsingPort(restConfig *rest.Config, namespace string, port int) (
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find a service using port=%d in namespace/%s\n", port, namespace)
+	return "", fmt.Errorf("could not find a service using port=%d in namespace/%s", port, namespace)
 }

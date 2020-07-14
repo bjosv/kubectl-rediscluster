@@ -78,7 +78,6 @@ func (c *slotsCmd) Validate() error {
 
 // Run the command
 func (c *slotsCmd) Run() error {
-
 	namespace, err := k8s.CurrentNamespace(c.configFlags)
 	if err != nil {
 		return err
@@ -134,17 +133,16 @@ func (c *slotsCmd) Run() error {
 		}(pod.Name, redisutils.RedisPort, ch)
 	}
 
-	// Collect result from all pods/redis instances
+	// Collect results from all pods/redis instances
 	for range c.k8sInfo.Pods {
-		select {
-		case queryResult := <-ch:
-			if queryResult.Info != nil {
-				c.redisInfo[queryResult.PodName] = queryResult.Info
-			}
+		queryResult := <-ch
 
-			if queryResult.Slots != nil {
-				c.redisSlots[queryResult.PodName] = queryResult.Slots
-			}
+		if queryResult.Info != nil {
+			c.redisInfo[queryResult.PodName] = queryResult.Info
+		}
+
+		if queryResult.Slots != nil {
+			c.redisSlots[queryResult.PodName] = queryResult.Slots
 		}
 	}
 
@@ -175,7 +173,6 @@ func analyzeSlotsInfo(slots redis.ClusterSlot, info *k8s.ClusterInfo) string {
 		if host != "" {
 			result += "*same host*"
 		}
-
 	}
 	return result
 }
@@ -199,11 +196,11 @@ func (c *slotsCmd) outputResult() {
 	}
 
 	for _, slots := range c.redisSlots[podName] {
-		remarks_slots := analyzeSlotsInfo(slots, c.k8sInfo)
+		remarksSlots := analyzeSlotsInfo(slots, c.k8sInfo)
 
 		for i, node := range slots.Nodes {
 			podInfo := c.k8sInfo.GetPodInfo(node.Addr)
-			remarks := podInfo.Info + remarks_slots
+			remarks := podInfo.Info + remarksSlots
 			if i == 0 {
 				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
 					slots.Start, slots.End, "master", node.Addr, podInfo.Name, podInfo.Host, remarks)

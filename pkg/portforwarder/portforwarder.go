@@ -27,7 +27,6 @@ func New(restConfig *rest.Config, out io.Writer, errOut io.Writer) *PortForwarde
 }
 
 func (p *PortForwarder) ForwardPort(podNamespace string, podName string, localPort int, podPort int, stopCh <-chan struct{}, readyCh chan struct{}) error {
-
 	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", podNamespace, podName)
 	hostIP := strings.TrimLeft(p.restConfig.Host, "htps:/")
 

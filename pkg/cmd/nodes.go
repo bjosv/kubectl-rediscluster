@@ -80,7 +80,6 @@ func (c *nodesCmd) Validate() error {
 
 // Run the command
 func (c *nodesCmd) Run() error {
-
 	namespace, err := k8s.CurrentNamespace(c.configFlags)
 	if err != nil {
 		return err
@@ -137,19 +136,18 @@ func (c *nodesCmd) Run() error {
 		}(pod.Name, redisutils.RedisPort, ch)
 	}
 
-	// Collect result from all pods/redis instances
+	// Collect results from all pods/redis instances
 	for range c.k8sInfo.Pods {
-		select {
-		case queryResult := <-ch:
-			if queryResult.Info != nil {
-				c.redisInfo[queryResult.PodName] = queryResult.Info
-			}
-			if queryResult.Nodes != nil {
-				c.redisNodes[queryResult.PodName] = queryResult.Nodes
-			}
-			if queryResult.Slots != nil {
-				c.redisSlots[queryResult.PodName] = queryResult.Slots
-			}
+		queryResult := <-ch
+
+		if queryResult.Info != nil {
+			c.redisInfo[queryResult.PodName] = queryResult.Info
+		}
+		if queryResult.Nodes != nil {
+			c.redisNodes[queryResult.PodName] = queryResult.Nodes
+		}
+		if queryResult.Slots != nil {
+			c.redisSlots[queryResult.PodName] = queryResult.Slots
 		}
 	}
 
@@ -160,7 +158,6 @@ func (c *nodesCmd) Run() error {
 }
 
 func (c *nodesCmd) outputResult() {
-
 	// Convert and sort the PodInfo
 	podList := []k8s.PodInfo{}
 	for _, pod := range c.k8sInfo.Pods {
@@ -205,15 +202,15 @@ func (c *nodesCmd) outputResult() {
 
 func slotsCount(ip string, slots redisutils.ClusterSlots) (int, int) {
 	ep := fmt.Sprintf("%s:%d", ip, redisutils.RedisPort)
-	slots_count := 0
-	slotranges_count := 0
+	slotsCount := 0
+	slotrangesCount := 0
 	for _, slot := range slots {
 		for _, node := range slot.Nodes {
 			if node.Addr == ep {
-				slotranges_count += 1
-				slots_count += (slot.End - slot.Start + 1)
+				slotrangesCount += 1
+				slotsCount += (slot.End - slot.Start + 1)
 			}
 		}
 	}
-	return slots_count, slotranges_count
+	return slotsCount, slotrangesCount
 }

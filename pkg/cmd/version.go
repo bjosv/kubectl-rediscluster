@@ -10,6 +10,7 @@ import (
 var version string
 var commit string
 
+// SetVersion initates this command with version info
 func SetVersion(v string, c string) {
 	version = v
 	commit = c
@@ -19,6 +20,7 @@ type versionCmd struct {
 	out io.Writer
 }
 
+// NewVersionCmd creates a command
 func NewVersionCmd(out io.Writer) *cobra.Command {
 	version := &versionCmd{out}
 
