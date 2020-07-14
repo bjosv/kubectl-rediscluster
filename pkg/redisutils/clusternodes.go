@@ -10,12 +10,14 @@ import (
 // ClusterNodes is a type that holds the result from one query
 type ClusterNodes map[string][]string
 
+const MinElements = 6
+
 func NewClusterNodes(cliData string) ClusterNodes {
 	nodes := make(map[string][]string)
 	for _, line := range strings.Split(cliData, "\n") {
 		keyVals := strings.Split(line, " ")
 
-		if len(keyVals) > 6 {
+		if len(keyVals) > MinElements {
 			addr := strings.Split(keyVals[1], ":")
 			if len(addr) > 1 {
 				ip := addr[0]

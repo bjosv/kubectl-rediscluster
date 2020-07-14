@@ -207,7 +207,7 @@ func slotsCount(ip string, slots redisutils.ClusterSlots) (int, int) {
 	for _, slot := range slots {
 		for _, node := range slot.Nodes {
 			if node.Addr == ep {
-				slotrangesCount += 1
+				slotrangesCount++
 				slotsCount += (slot.End - slot.Start + 1)
 			}
 		}

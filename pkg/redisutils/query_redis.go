@@ -13,6 +13,7 @@ import (
 )
 
 const RedisPort = 6379
+const Timeout = 2
 
 type ClusterInfo map[string]string
 type ClusterSlots []redis.ClusterSlot
@@ -48,7 +49,7 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	select {
 	case <-readyCh:
 		break
-	case <-time.After(2 * time.Second):
+	case <-time.After(Timeout * time.Second):
 		close(stopCh)
 		return nil, nil, nil, fmt.Errorf("could not setup a portforward to %s/%s:%d", namespace, podName, podPort)
 	}
@@ -80,7 +81,7 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	for _, line := range strings.Split(cInfo, "\r\n") {
 		keyVals := strings.Split(line, ":")
 
-		if len(keyVals) == 2 {
+		if len(keyVals) > 1 {
 			info[keyVals[0]] = keyVals[1]
 		}
 	}
