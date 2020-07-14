@@ -33,6 +33,7 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 
 	stopCh := make(chan struct{}, 1)
 	readyCh := make(chan struct{})
+	errorCh := make(chan error)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -40,7 +41,7 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	go func() {
 		err = pfwd.ForwardPort(namespace, podName, localPort, podPort, stopCh, readyCh)
 		if err != nil {
-			panic(err)
+			errorCh <- err
 		}
 		wg.Done()
 	}()
@@ -49,6 +50,9 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	select {
 	case <-readyCh:
 		break
+	case err := <-errorCh:
+		close(stopCh)
+		return nil, nil, nil, err
 	case <-time.After(Timeout * time.Second):
 		close(stopCh)
 		return nil, nil, nil, fmt.Errorf("could not setup a portforward to %s/%s:%d", namespace, podName, podPort)
@@ -76,7 +80,19 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 		return nil, nil, nil, err
 	}
 
-	// Structure the cluster info data
+	dbSize, err := rdb.DBSize(ctx).Result()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	cNodes, err := rdb.ClusterNodes(ctx).Result()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	// Done with the portforwarder
+	close(stopCh)
+
+	// Parse cluster info data
 	info := make(map[string]string)
 	for _, line := range strings.Split(cInfo, "\r\n") {
 		keyVals := strings.Split(line, ":")
@@ -85,23 +101,12 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 			info[keyVals[0]] = keyVals[1]
 		}
 	}
-
-	dbSize, err := rdb.DBSize(ctx).Result()
-	if err != nil {
-		return nil, nil, nil, err
-	}
 	info["keys"] = fmt.Sprintf("%d", dbSize)
 
-	cNodes, err := rdb.ClusterNodes(ctx).Result()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// Parse cli data
+	// Parse cluster nodes data
 	nodes := NewClusterNodes(cNodes)
 
-	// Stop and wait for portforwarder goroutine to exit
-	close(stopCh)
+	// Wait for portforwarder goroutine to exit
 	wg.Wait()
 
 	return info, nodes, slots, nil
