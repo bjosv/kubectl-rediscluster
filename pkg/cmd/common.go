@@ -18,6 +18,7 @@ type QueryRedisResult struct {
 	Info    redisutils.ClusterInfo
 	Nodes   redisutils.ClusterNodes
 	Slots   redisutils.ClusterSlots
+	Error   error
 }
 
 func getK8sInfo(restConfig *rest.Config, serviceName string, namespace string, k8sInfo *k8s.ClusterInfo) error {

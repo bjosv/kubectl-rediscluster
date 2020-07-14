@@ -121,14 +121,11 @@ func (c *slotsCmd) Run() error {
 	for _, pod := range c.k8sInfo.Pods {
 		go func(podName string, podPort int, ch chan QueryRedisResult) {
 			clusterInfo, _, clusterSlots, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
-			if err != nil {
-				fmt.Printf("Failed to get Redis Cluster slot information for pod=%s: %v\n",
-					podName, err)
-			}
 			ch <- QueryRedisResult{
 				PodName: podName,
 				Info:    clusterInfo,
 				Slots:   clusterSlots,
+				Error:   err,
 			}
 		}(pod.Name, redisutils.RedisPort, ch)
 	}
@@ -137,10 +134,13 @@ func (c *slotsCmd) Run() error {
 	for range c.k8sInfo.Pods {
 		queryResult := <-ch
 
+		if err != nil {
+			fmt.Printf("Failed to get Redis information from pod=%s: %v\n",
+				queryResult.PodName, queryResult.Error)
+		}
 		if queryResult.Info != nil {
 			c.redisInfo[queryResult.PodName] = queryResult.Info
 		}
-
 		if queryResult.Slots != nil {
 			c.redisSlots[queryResult.PodName] = queryResult.Slots
 		}
