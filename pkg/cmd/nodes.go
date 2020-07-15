@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"sort"
-	"strings"
+	"strconv"
 	"text/tabwriter"
 
 	"github.com/bjosv/kubectl-rediscluster/pkg/k8s"
@@ -201,7 +201,14 @@ func (c *nodesCmd) outputResult() {
 		keys := c.redisInfo[podName]["keys"]
 		state := c.redisInfo[podName]["cluster_state"]
 		//addr := fmt.Sprintf("%s:%d", p.IP, redisutils.RedisPort)
-		slots, slotranges := slotsCount(podIP, c.redisSlots[podName])
+
+		slots := ""
+		slotranges := ""
+		if c.redisSlots[podName] != nil {
+			s, r := slotsCount(podIP, c.redisSlots[podName])
+			slots = strconv.Itoa(s)
+			slotranges = strconv.Itoa(r)
+		}
 
 		remarks := ""
 		for i, info := range c.remarks[podName] {
@@ -211,7 +218,7 @@ func (c *nodesCmd) outputResult() {
 			remarks += info
 		}
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%d\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			p.Host, p.Name, p.IP, role, keys, slots, slotranges, state, remarks)
 	}
 

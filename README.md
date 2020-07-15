@@ -23,6 +23,19 @@ ln -s ~/bin/kubectl-rediscluster ~/bin/kubectl-rc
 kubectl rc slots
 ```
 
+## How to run
+
+Get cluster information by running a command like:
+
+`kubectl rediscluster <COMMAND> <SERVICE NAME>`
+
+or continuously by running:
+
+`watch -d kubectl rediscluster <COMMAND>`
+
+This will query the cluster every 2 sec and highlight the differences.
+The last example also excluded the `<SERVICE NAME>` which makes the plugin guess which K8s Service to query.
+
 ## Commands
 
 ### Get slots information
