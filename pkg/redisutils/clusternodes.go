@@ -36,5 +36,5 @@ func (n *ClusterNodes) GetFlagsSelf() string {
 			return strings.Replace(flags, "slave", "repl.", -1)
 		}
 	}
-	return "unknown"
+	return ""
 }

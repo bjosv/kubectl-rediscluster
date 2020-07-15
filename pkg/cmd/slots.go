@@ -18,11 +18,13 @@ type slotsCmd struct {
 	configFlags *genericclioptions.ConfigFlags
 	streams     *genericclioptions.IOStreams
 	args        []string
+	verbose     bool
 
 	k8sInfo    *k8s.ClusterInfo
 	redisInfo  map[string]redisutils.ClusterInfo
 	redisSlots map[string]redisutils.ClusterSlots
-	verbose    bool
+	remarks    map[string]string
+	errors     map[string][]string
 }
 
 // NewSlotsCmd initialize and creates a Cobra command
@@ -33,6 +35,8 @@ func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		k8sInfo:     k8s.NewClusterInfo(),
 		redisInfo:   make(map[string]redisutils.ClusterInfo),
 		redisSlots:  make(map[string]redisutils.ClusterSlots),
+		remarks:     make(map[string]string),
+		errors:      make(map[string][]string),
 	}
 
 	cmd := &cobra.Command{
@@ -134,9 +138,9 @@ func (c *slotsCmd) Run() error {
 	for range c.k8sInfo.Pods {
 		queryResult := <-ch
 
-		if err != nil {
-			fmt.Printf("Failed to get Redis information from pod=%s: %v\n",
-				queryResult.PodName, queryResult.Error)
+		if queryResult.Error != nil {
+			c.errors[queryResult.PodName] = append(c.errors[queryResult.PodName],
+				fmt.Sprintf("Failed to get Redis information: %s", queryResult.Error))
 		}
 		if queryResult.Info != nil {
 			c.redisInfo[queryResult.PodName] = queryResult.Info
@@ -208,6 +212,18 @@ func (c *slotsCmd) outputResult() {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 					".", ".", "repl.", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			}
+		}
+	}
+
+	// Print errors
+	addNewline := true
+	for name, v := range c.errors {
+		for _, text := range v {
+			if addNewline {
+				fmt.Fprintf(w, "\n")
+				addNewline = false
+			}
+			fmt.Fprintf(w, "%s:\t%s\n", name, text)
 		}
 	}
 }

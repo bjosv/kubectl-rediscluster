@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/bjosv/kubectl-rediscluster/pkg/k8s"
@@ -24,6 +25,8 @@ type nodesCmd struct {
 	redisInfo  map[string]redisutils.ClusterInfo
 	redisSlots map[string]redisutils.ClusterSlots
 	redisNodes map[string]redisutils.ClusterNodes
+	remarks    map[string]string
+	errors     map[string][]string
 }
 
 // NewNodesCmd initialize and creates a Cobra command
@@ -35,6 +38,8 @@ func NewNodesCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		redisInfo:   make(map[string]redisutils.ClusterInfo),
 		redisNodes:  make(map[string]redisutils.ClusterNodes),
 		redisSlots:  make(map[string]redisutils.ClusterSlots),
+		remarks:     make(map[string]string),
+		errors:      make(map[string][]string),
 	}
 
 	cmd := &cobra.Command{
@@ -138,8 +143,8 @@ func (c *nodesCmd) Run() error {
 		queryResult := <-ch
 
 		if queryResult.Error != nil {
-			fmt.Printf("Failed to get Redis information from pod=%s: %v\n",
-				queryResult.PodName, queryResult.Error)
+			c.errors[queryResult.PodName] = append(c.errors[queryResult.PodName],
+				fmt.Sprintf("Failed to get Redis information: %s", queryResult.Error))
 		}
 		if queryResult.Info != nil {
 			c.redisInfo[queryResult.PodName] = queryResult.Info
@@ -159,7 +164,7 @@ func (c *nodesCmd) Run() error {
 }
 
 func (c *nodesCmd) outputResult() {
-	// Convert and sort the PodInfo
+	// Convert PodInfo to a ordered list
 	podList := []k8s.PodInfo{}
 	for _, pod := range c.k8sInfo.Pods {
 		podList = append(podList, pod)
@@ -198,6 +203,18 @@ func (c *nodesCmd) outputResult() {
 		remarks := ""
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%d\t%s\t%s\n",
 			p.Host, p.Name, p.IP, role, keys, slots, slotranges, state, remarks)
+	}
+
+	// Print errors
+	addNewline := true
+	for _, p := range podList {
+		for _, text := range c.errors[p.Name] {
+			if addNewline {
+				fmt.Fprintf(w, "\n")
+				addNewline = false
+			}
+			fmt.Fprintf(w, "%s:\t%s\n", p.Name, text)
+		}
 	}
 }
 
