@@ -23,7 +23,7 @@ type slotsCmd struct {
 	k8sInfo    *k8s.ClusterInfo
 	redisInfo  map[string]redisutils.ClusterInfo
 	redisSlots map[string]redisutils.ClusterSlots
-	remarks    map[string]string
+	remarks    map[string][]string
 	errors     map[string][]string
 }
 
@@ -35,7 +35,7 @@ func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		k8sInfo:     k8s.NewClusterInfo(),
 		redisInfo:   make(map[string]redisutils.ClusterInfo),
 		redisSlots:  make(map[string]redisutils.ClusterSlots),
-		remarks:     make(map[string]string),
+		remarks:     make(map[string][]string),
 		errors:      make(map[string][]string),
 	}
 
@@ -139,7 +139,9 @@ func (c *slotsCmd) Run() error {
 		queryResult := <-ch
 
 		if queryResult.Error != nil {
-			c.errors[queryResult.PodName] = append(c.errors[queryResult.PodName],
+			pod := queryResult.PodName
+			c.remarks[pod] = append(c.remarks[pod], "RedisUnavailable")
+			c.errors[pod] = append(c.errors[pod],
 				fmt.Sprintf("Failed to get Redis information: %s", queryResult.Error))
 		}
 		if queryResult.Info != nil {

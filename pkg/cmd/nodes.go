@@ -25,7 +25,7 @@ type nodesCmd struct {
 	redisInfo  map[string]redisutils.ClusterInfo
 	redisSlots map[string]redisutils.ClusterSlots
 	redisNodes map[string]redisutils.ClusterNodes
-	remarks    map[string]string
+	remarks    map[string][]string
 	errors     map[string][]string
 }
 
@@ -38,7 +38,7 @@ func NewNodesCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		redisInfo:   make(map[string]redisutils.ClusterInfo),
 		redisNodes:  make(map[string]redisutils.ClusterNodes),
 		redisSlots:  make(map[string]redisutils.ClusterSlots),
-		remarks:     make(map[string]string),
+		remarks:     make(map[string][]string),
 		errors:      make(map[string][]string),
 	}
 
@@ -143,7 +143,9 @@ func (c *nodesCmd) Run() error {
 		queryResult := <-ch
 
 		if queryResult.Error != nil {
-			c.errors[queryResult.PodName] = append(c.errors[queryResult.PodName],
+			pod := queryResult.PodName
+			c.remarks[pod] = append(c.remarks[pod], "RedisUnavailable")
+			c.errors[pod] = append(c.errors[pod],
 				fmt.Sprintf("Failed to get Redis information: %s", queryResult.Error))
 		}
 		if queryResult.Info != nil {
@@ -200,7 +202,15 @@ func (c *nodesCmd) outputResult() {
 		state := c.redisInfo[podName]["cluster_state"]
 		//addr := fmt.Sprintf("%s:%d", p.IP, redisutils.RedisPort)
 		slots, slotranges := slotsCount(podIP, c.redisSlots[podName])
+
 		remarks := ""
+		for i, info := range c.remarks[podName] {
+			if i > 0 {
+				remarks += ", "
+			}
+			remarks += info
+		}
+
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%d\t%s\t%s\n",
 			p.Host, p.Name, p.IP, role, keys, slots, slotranges, state, remarks)
 	}
