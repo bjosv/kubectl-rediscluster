@@ -7,8 +7,7 @@ all: build lint test
 build:
 	GO111MODULE="on" CGO_ENABLED=0 \
 	go build -o $(BINARY) \
-	-ldflags='-X main.version=$(VERSION) -X main.commit=$(COMMIT)' \
-	cmd/$(BINARY).go \
+	-ldflags='-X main.version=$(VERSION) -X main.commit=$(COMMIT)'
 
 test:
 	go test -v -short ./...
