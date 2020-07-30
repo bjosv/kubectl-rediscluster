@@ -2,8 +2,7 @@ before:
   hooks:
     - go mod download
 builds:
-- main: ./cmd/kubectl-rediscluster.go
-  env:
+- env:
   - CGO_ENABLED=0
 archives:
 - replacements:
