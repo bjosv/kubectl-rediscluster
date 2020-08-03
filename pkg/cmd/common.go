@@ -15,7 +15,7 @@ import (
 // Type used when transferring result from portforwarder
 type QueryRedisResult struct {
 	PodName string
-	Info    redisutils.ClusterInfo
+	Info    redisutils.RedisInfo
 	Nodes   redisutils.ClusterNodes
 	Slots   redisutils.ClusterSlots
 	Error   error

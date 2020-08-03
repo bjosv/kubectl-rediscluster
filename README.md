@@ -8,9 +8,9 @@ The plugin expects a K8s Service to be able to find out which Pods that runs Red
 
 Download the binary, or fetch it via:
 
-`GO111MODULE=on go get github.com/bjosv/kubectl-rediscluster@latest`
+`GO111MODULE=on go get -u github.com/bjosv/kubectl-rediscluster@latest`
 
-A kubectl plugin binary needs to be accessible via $PATH, so make sure its in the path and verify the installation by running: `kubectl plugin list`
+A kubectl plugin binary needs to be accessible via `$PATH`, so make sure `which kubectl-rediscluster` finds the binary in `$GOPATH/bin`. Verify the installation by running: `kubectl plugin list`
 
 #### Options
 
@@ -25,7 +25,7 @@ kubectl rc slots
 
 ## How to run
 
-Get cluster information by running a command like:
+Collect cluster information by running a command like:
 
 `kubectl rediscluster <COMMAND> <SERVICE NAME>`
 

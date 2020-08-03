@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"text/tabwriter"
+	"time"
 
 	"github.com/bjosv/kubectl-rediscluster/pkg/k8s"
 	"github.com/bjosv/kubectl-rediscluster/pkg/portforwarder"
@@ -22,7 +23,7 @@ type nodesCmd struct {
 	verbose     bool
 
 	k8sInfo    *k8s.ClusterInfo
-	redisInfo  map[string]redisutils.ClusterInfo
+	redisInfo  map[string]redisutils.RedisInfo
 	redisSlots map[string]redisutils.ClusterSlots
 	redisNodes map[string]redisutils.ClusterNodes
 	remarks    map[string][]string
@@ -35,7 +36,7 @@ func NewNodesCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		configFlags: genericclioptions.NewConfigFlags(true),
 		streams:     &streams,
 		k8sInfo:     k8s.NewClusterInfo(),
-		redisInfo:   make(map[string]redisutils.ClusterInfo),
+		redisInfo:   make(map[string]redisutils.RedisInfo),
 		redisNodes:  make(map[string]redisutils.ClusterNodes),
 		redisSlots:  make(map[string]redisutils.ClusterSlots),
 		remarks:     make(map[string][]string),
@@ -101,7 +102,7 @@ func (c *nodesCmd) Run() error {
 	} else {
 		serviceName, err = k8s.FindServiceUsingPort(restConfig, namespace, redisutils.RedisPort)
 		if err != nil {
-			return fmt.Errorf("%s\nPlease provide a service name", err)
+			return fmt.Errorf("%s\n\nPlease provide a service name", err)
 		}
 		fmt.Fprintf(c.streams.Out, "Using service name: %s\n", serviceName)
 	}
@@ -127,10 +128,10 @@ func (c *nodesCmd) Run() error {
 	ch := make(chan QueryRedisResult)
 	for _, pod := range c.k8sInfo.Pods {
 		go func(podName string, podPort int, ch chan QueryRedisResult) {
-			clusterInfo, clusterNodes, clusterSlots, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
+			redisInfo, clusterNodes, clusterSlots, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
 			ch <- QueryRedisResult{
 				PodName: podName,
-				Info:    clusterInfo,
+				Info:    redisInfo,
 				Nodes:   clusterNodes,
 				Slots:   clusterSlots,
 				Error:   err,
@@ -189,7 +190,7 @@ func (c *nodesCmd) outputResult() {
 	defer w.Flush()
 
 	fmt.Fprintln(w, "\t\t\t\t\t\tSLOT\tCLUSTER\t")
-	fmt.Fprintln(w, "HOST\tPODNAME\tIP\tROLE\tKEYS\tSLOTS\tRANGES\tSTATE\tREMARKS")
+	fmt.Fprintln(w, "HOST\tPODNAME\tIP\tROLE\tKEYS\tSLOTS\tRANGES\tSTATE\tUPTIME\tREMARKS")
 
 	for _, p := range podList {
 		podName := p.Name
@@ -199,8 +200,16 @@ func (c *nodesCmd) outputResult() {
 		role := nodes.GetFlagsSelf()
 
 		keys := c.redisInfo[podName]["keys"]
+
 		state := c.redisInfo[podName]["cluster_state"]
 		//addr := fmt.Sprintf("%s:%d", p.IP, redisutils.RedisPort)
+
+		uptime := ""
+		uptimeSec := c.redisInfo[podName]["uptime_in_seconds"]
+		if s, err := strconv.Atoi(uptimeSec); err == nil {
+			d := time.Duration(s) * time.Second
+			uptime = d.String()
+		}
 
 		slots := ""
 		slotranges := ""
@@ -218,8 +227,8 @@ func (c *nodesCmd) outputResult() {
 			remarks += info
 		}
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			p.Host, p.Name, p.IP, role, keys, slots, slotranges, state, remarks)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			p.Host, p.Name, p.IP, role, keys, slots, slotranges, state, uptime, remarks)
 	}
 
 	// Print errors

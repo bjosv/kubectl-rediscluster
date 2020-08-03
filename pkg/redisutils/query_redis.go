@@ -15,7 +15,7 @@ import (
 const RedisPort = 6379
 const Timeout = 2
 
-type ClusterInfo map[string]string
+type RedisInfo map[string]string
 type ClusterSlots []redis.ClusterSlot
 
 // Sorter functions: Sort by Start slot
@@ -25,7 +25,7 @@ func (s BySlot) Len() int           { return len(s) }
 func (s BySlot) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s BySlot) Less(i, j int) bool { return s[i].Start < s[j].Start }
 
-func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName string, podPort int) (ClusterInfo, ClusterNodes, ClusterSlots, error) {
+func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName string, podPort int) (RedisInfo, ClusterNodes, ClusterSlots, error) {
 	localPort, err := portforwarder.GetAvailableLocalPort()
 	if err != nil {
 		return nil, nil, nil, err
@@ -80,6 +80,11 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 		return nil, nil, nil, err
 	}
 
+	rInfo, err := rdb.Info(ctx).Result()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	dbSize, err := rdb.DBSize(ctx).Result()
 	if err != nil {
 		return nil, nil, nil, err
@@ -92,9 +97,16 @@ func QueryRedis(pfwd *portforwarder.PortForwarder, namespace string, podName str
 	// Done with the portforwarder
 	close(stopCh)
 
-	// Parse cluster info data
+	// Parse query responses
 	info := make(map[string]string)
 	for _, line := range strings.Split(cInfo, "\r\n") {
+		keyVals := strings.Split(line, ":")
+
+		if len(keyVals) > 1 {
+			info[keyVals[0]] = keyVals[1]
+		}
+	}
+	for _, line := range strings.Split(rInfo, "\r\n") {
 		keyVals := strings.Split(line, ":")
 
 		if len(keyVals) > 1 {

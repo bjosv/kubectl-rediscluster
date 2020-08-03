@@ -21,7 +21,7 @@ type slotsCmd struct {
 	verbose     bool
 
 	k8sInfo    *k8s.ClusterInfo
-	redisInfo  map[string]redisutils.ClusterInfo
+	redisInfo  map[string]redisutils.RedisInfo
 	redisSlots map[string]redisutils.ClusterSlots
 	remarks    map[string][]string
 	errors     map[string][]string
@@ -33,7 +33,7 @@ func NewSlotsCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		configFlags: genericclioptions.NewConfigFlags(true),
 		streams:     &streams,
 		k8sInfo:     k8s.NewClusterInfo(),
-		redisInfo:   make(map[string]redisutils.ClusterInfo),
+		redisInfo:   make(map[string]redisutils.RedisInfo),
 		redisSlots:  make(map[string]redisutils.ClusterSlots),
 		remarks:     make(map[string][]string),
 		errors:      make(map[string][]string),
@@ -98,7 +98,7 @@ func (c *slotsCmd) Run() error {
 	} else {
 		serviceName, err = k8s.FindServiceUsingPort(restConfig, namespace, redisutils.RedisPort)
 		if err != nil {
-			return fmt.Errorf("%s\nPlease provide a service name", err)
+			return fmt.Errorf("%s\n\nPlease provide a service name", err)
 		}
 		fmt.Fprintf(c.streams.Out, "Using service name: %s\n", serviceName)
 	}
@@ -124,10 +124,10 @@ func (c *slotsCmd) Run() error {
 	ch := make(chan QueryRedisResult)
 	for _, pod := range c.k8sInfo.Pods {
 		go func(podName string, podPort int, ch chan QueryRedisResult) {
-			clusterInfo, _, clusterSlots, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
+			redisInfo, _, clusterSlots, err := redisutils.QueryRedis(pfwd, namespace, podName, podPort)
 			ch <- QueryRedisResult{
 				PodName: podName,
-				Info:    clusterInfo,
+				Info:    redisInfo,
 				Slots:   clusterSlots,
 				Error:   err,
 			}
@@ -205,14 +205,30 @@ func (c *slotsCmd) outputResult() {
 		remarksSlots := analyzeSlotsInfo(slots, c.k8sInfo)
 
 		for i, node := range slots.Nodes {
+			remarkList := c.remarks[podName]
+
 			podInfo := c.k8sInfo.GetPodInfo(node.Addr)
-			remarks := podInfo.Info + remarksSlots
+			if podInfo.Info != "" {
+				remarkList = append(remarkList, podInfo.Info)
+			}
+			if remarksSlots != "" {
+				remarkList = append(remarkList, remarksSlots)
+			}
+
+			remarks := ""
+			for i, info := range remarkList {
+				if i > 0 {
+					remarks += ", "
+				}
+				remarks += info
+			}
+
 			if i == 0 {
 				fmt.Fprintf(w, "%d\t%d\t%s\t%s\t%s\t%s\t%s\n",
 					slots.Start, slots.End, "master", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			} else {
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-					".", ".", "repl.", node.Addr, podInfo.Name, podInfo.Host, remarks)
+					".", ".", "repl", node.Addr, podInfo.Name, podInfo.Host, remarks)
 			}
 		}
 	}
